@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChainVault — Blockchain Secure File Sharing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0D12;
+    --surface:#12161F;
+    --surface-2:#181F2A;
+    --border:#242C38;
+    --border-soft:#1B222D;
+    --text:#E8EDF4;
+    --text-muted:#8993A4;
+    --text-faint:#4E5766;
+    --cyan:#5EEAD4;
+    --violet:#8B7CF6;
+    --amber:#F5A623;
+    --red:#F87171;
+    --green:#4ADE80;
+    --radius:10px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 500px at 85% -10%, rgba(139,124,246,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(94,234,212,0.07), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+    min-height:100vh;
+    padding:28px 28px 60px;
+  }
+  a{color:inherit;}
+  ::selection{background:rgba(94,234,212,0.25);}
+
+  /* ---------- header ---------- */
+  header.topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:20px; flex-wrap:wrap; margin-bottom:22px;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{
+    width:38px;height:38px;border-radius:9px;
+    background:linear-gradient(145deg, var(--cyan), var(--violet));
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px; flex-shrink:0;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px -8px rgba(94,234,212,0.4);
+  }
+  .brand h1{font-family:var(--display); font-size:19px; font-weight:700; margin:0; letter-spacing:0.2px;}
+  .brand p{margin:1px 0 0; font-size:12px; color:var(--text-muted);}
+
+  .wallets{display:flex; gap:8px; align-items:center; background:var(--surface); border:1px solid var(--border); padding:6px; border-radius:12px;}
+  .wallet-btn{
+    display:flex; align-items:center; gap:8px;
+    background:transparent; border:1px solid transparent; color:var(--text-muted);
+    padding:7px 12px 7px 8px; border-radius:9px; cursor:pointer; font-family:var(--sans); font-size:12.5px; font-weight:500;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .wallet-btn .dot{width:9px;height:9px;border-radius:50%; flex-shrink:0;}
+  .wallet-btn .addr{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); display:block;}
+  .wallet-btn.active{background:var(--surface-2); border-color:var(--border); color:var(--text);}
+  .wallet-btn:hover{color:var(--text);}
+
+  /* ---------- stats strip ---------- */
+  .stats{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px;
+  }
+  .stat{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .stat .label{font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); font-weight:600;}
+  .stat .value{font-family:var(--display); font-size:22px; font-weight:700; margin-top:4px; display:flex; align-items:center; gap:8px;}
+  .status-pulse{width:9px;height:9px;border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(74,222,128,0.18);}
+  .status-pulse.bad{background:var(--red); box-shadow:0 0 0 3px rgba(248,113,113,0.18);}
+
+  /* ---------- layout ---------- */
+  .layout{display:grid; grid-template-columns:1.25fr 1fr; gap:20px; align-items:start;}
+  @media (max-width:980px){.layout{grid-template-columns:1fr;}}
+
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .panel-head{
+    padding:16px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+  .panel-head h2{font-family:var(--display); font-size:15px; margin:0; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .panel-head .sub{font-size:12px; color:var(--text-muted); margin-top:2px;}
+  .panel-body{padding:16px 18px;}
+  .btn{
+    font-family:var(--sans); font-size:12.5px; font-weight:600; cursor:pointer;
+    border-radius:8px; padding:8px 13px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); transition:filter .15s, transform .05s;
+  }
+  .btn:hover{filter:brightness(1.15);}
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-primary{background:linear-gradient(135deg, var(--cyan), #34C6B4); color:#062420; border:none;}
+  .btn-violet{background:linear-gradient(135deg, var(--violet), #6C55E0); color:#100A2E; border:none;}
+  .btn-danger{background:transparent; border:1px solid rgba(248,113,113,0.4); color:var(--red);}
+  .btn-ghost{background:transparent;}
+  .btn-sm{padding:5px 10px; font-size:11.5px; border-radius:7px;}
+
+  /* upload */
+  .dropzone{
+    border:1.5px dashed var(--border); border-radius:10px; padding:22px;
+    text-align:center; background:var(--surface-2); margin-bottom:16px; position:relative;
+  }
+  .dropzone p{margin:2px 0; color:var(--text-muted); font-size:12.5px;}
+  .dropzone strong{color:var(--text); font-family:var(--display);}
+  .dropzone input[type=file]{
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  }
+
+  /* file cards */
+  .file-card{
+    border:1px solid var(--border); border-radius:10px; padding:14px 15px; margin-bottom:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.012), transparent);
+  }
+  .file-card .row1{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .file-card .fname{font-family:var(--display); font-weight:600; font-size:14px;}
+  .file-card .fmeta{font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+  .pill{
+    font-size:10px; font-weight:600; padding:3px 8px; border-radius:99px; text-transform:uppercase; letter-spacing:.04em;
+    white-space:nowrap;
+  }
+  .pill-owner{background:rgba(94,234,212,0.12); color:var(--cyan); border:1px solid rgba(94,234,212,0.3);}
+  .pill-shared{background:rgba(139,124,246,0.12); color:var(--violet); border:1px solid rgba(139,124,246,0.3);}
+  .pill-none{background:rgba(139,147,164,0.1); color:var(--text-muted); border:1px solid var(--border);}
+  .hashline{
+    font-family:var(--mono); font-size:11px; color:var(--text-faint);
+    margin-top:8px; word-break:break-all; background:var(--bg); padding:6px 9px; border-radius:6px; border:1px solid var(--border-soft);
+  }
+  .hashline b{color:var(--text-muted); font-weight:600;}
+  .badges{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .badge{
+    display:flex; align-items:center; gap:5px; font-size:11px; padding:3px 8px 3px 6px; border-radius:99px;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted);
+  }
+  .badge .dot{width:7px;height:7px;border-radius:50%;}
+  .badge button{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:12px;padding:0 0 0 3px;line-height:1;}
+  .badge button:hover{color:var(--red);}
+  .actions{display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  select.sel{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:7px;
+    padding:6px 8px; font-family:var(--sans); font-size:11.5px;
+  }
+  .preview{
+    margin-top:10px; border-top:1px dashed var(--border); padding-top:10px; font-size:12px;
+  }
+  .preview pre{
+    background:var(--bg); border:1px solid var(--border-soft); border-radius:7px; padding:10px;
+    font-family:var(--mono); font-size:11.5px; color:var(--text); white-space:pre-wrap; word-break:break-all; max-height:160px; overflow:auto; margin:6px 0 0;
+  }
+  .ok-line{color:var(--green); font-weight:600;}
+  .fail-line{color:var(--red); font-weight:600;}
+  .empty{color:var(--text-faint); font-size:12.5px; text-align:center; padding:30px 10px;}
+
+  /* ledger */
+  .ledger-toolbar{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .chain-wrap{max-height:640px; overflow-y:auto; padding-right:4px;}
+  .chain-wrap::-webkit-scrollbar{width:7px;}
+  .chain-wrap::-webkit-scrollbar-thumb{background:var(--border); border-radius:10px;}
+  .block{
+    position:relative; padding-left:26px; padding-bottom:20px;
+  }
+  .block:before{ /* connecting line */
+    content:''; position:absolute; left:8px; top:22px; bottom:-2px; width:2px; background:var(--border-soft);
+  }
+  .block:last-child:before{display:none;}
+  .block .node{
+    position:absolute; left:2px; top:4px; width:14px; height:14px; border-radius:50%;
+    background:var(--surface); border:2px solid var(--border);
+  }
+  .block.type-GENESIS .node{border-color:var(--text-faint);}
+  .block.type-UPLOAD .node{border-color:var(--cyan); box-shadow:0 0 8px -1px rgba(94,234,212,.6);}
+  .block.type-SHARE .node{border-color:var(--violet); box-shadow:0 0 8px -1px rgba(139,124,246,.6);}
+  .block.type-REVOKE .node{border-color:var(--amber); box-shadow:0 0 8px -1px rgba(245,166,35,.6);}
+  .block.type-ACCESS .node{border-color:var(--green); box-shadow:0 0 8px -1px rgba(74,222,128,.6);}
+  .block.type-TAMPER .node{border-color:var(--red); box-shadow:0 0 8px -1px rgba(248,113,113,.7);}
+  .block .card{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:11px 13px;
+  }
+  .block.invalid .card{border-color:rgba(248,113,113,0.55); background:rgba(248,113,113,0.05);}
+  .block-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .block-top .idx{font-family:var(--mono); font-size:11px; color:var(--text-faint);}
+  .action-tag{font-size:10px; font-weight:700; letter-spacing:.05em; padding:2px 7px; border-radius:5px;}
+  .tag-GENESIS{background:rgba(139,147,164,0.12); color:var(--text-muted);}
+  .tag-UPLOAD{background:rgba(94,234,212,0.12); color:var(--cyan);}
+  .tag-SHARE{background:rgba(139,124,246,0.12); color:var(--violet);}
+  .tag-REVOKE{background:rgba(245,166,35,0.12); color:var(--amber);}
+  .tag-ACCESS{background:rgba(74,222,128,0.12); color:var(--green);}
+  .tag-TAMPER{background:rgba(248,113,113,0.15); color:var(--red);}
+  .block-desc{font-size:12.5px; margin-top:7px; color:var(--text);}
+  .block-desc .who{color:var(--text-muted);}
+  .block-hashes{margin-top:8px; font-family:var(--mono); font-size:10px; color:var(--text-faint); line-height:1.7;}
+  .block-hashes div{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .block-hashes b{color:var(--text-faint); font-weight:600;}
+  .time{font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+
+  .verify-banner{
+    display:flex; align-items:center; gap:8px; font-size:12.5px; padding:9px 12px; border-radius:8px; margin-bottom:14px;
+    border:1px solid var(--border);
+  }
+  .verify-banner.ok{background:rgba(74,222,128,0.08); color:var(--green); border-color:rgba(74,222,128,0.3);}
+  .verify-banner.bad{background:rgba(248,113,113,0.08); color:var(--red); border-color:rgba(248,113,113,0.3);}
+
+  details.howworks{margin-top:20px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px;}
+  details.howworks summary{cursor:pointer; font-family:var(--display); font-weight:600; font-size:14px; list-style:none;}
+  details.howworks summary::-webkit-details-marker{display:none;}
+  details.howworks summary:before{content:'▸ '; color:var(--cyan);}
+  details.howworks[open] summary:before{content:'▾ '; color:var(--cyan);}
+  .hw-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:14px;}
+  @media (max-width:900px){.hw-grid{grid-template-columns:1fr 1fr;}}
+  .hw-item h3{font-size:12.5px; margin:0 0 4px; color:var(--cyan); font-family:var(--display);}
+  .hw-item p{font-size:12px; color:var(--text-muted); margin:0;}
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:10px 16px; border-radius:9px; font-size:12.5px; opacity:0; transition:opacity .2s, transform .2s;
+    pointer-events:none; z-index:50; max-width:90vw; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">⛓</div>
+    <div>
+      <h1>ChainVault</h1>
+      <p>Blockchain-based secure file sharing — client-side prototype</p>
+    </div>
+  </div>
+  <div class="wallets" id="walletSwitcher"></div>
+</header>
+
+<div class="stats" id="statsStrip"></div>
+
+<div class="layout">
+  <!-- LEFT: Vault -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>🔐 Vault</h2>
+        <div class="sub">Files are AES‑256 encrypted locally, then addressed by content hash — like IPFS.</div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="dropzone">
+        <input type="file" id="fileInput" />
+        <p><strong>Click or drop a file to encrypt & upload</strong></p>
+        <p>Never leaves your device unencrypted. Key is wrapped for you (the owner) with RSA‑OAEP.</p>
+      </div>
+      <div id="fileList"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Ledger -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>📒 Immutable Ledger</h2>
+        <div class="sub">Every upload, share, revoke & access attempt is chained by hash.</div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="ledger-toolbar">
+        <button class="btn btn-primary btn-sm" id="verifyBtn">Verify chain integrity</button>
+        <button class="btn btn-danger btn-sm" id="tamperBtn">Simulate ledger tampering</button>
+        <button class="btn btn-ghost btn-sm" id="restoreBtn" style="display:none;">Restore chain</button>
+      </div>
+      <div id="verifyBanner"></div>
+      <div class="chain-wrap" id="chainWrap"></div>
+    </div>
+  </section>
+</div>
+
+<details class="howworks">
+  <summary>How this prototype implements the proposal</summary>
+  <div class="hw-grid">
+    <div class="hw-item">
+      <h3>Off-chain storage</h3>
+      <p>Encrypted file bytes are kept in a mock content-addressed store, keyed by SHA‑256 of the ciphertext — simulating IPFS.</p>
+    </div>
+    <div class="hw-item">
+      <h3>On-chain metadata</h3>
+      <p>Only hashes, CIDs, owners and permission events are written to the ledger — never raw content.</p>
+    </div>
+    <div class="hw-item">
+      <h3>Key-wrapped access control</h3>
+      <p>Each file's AES key is wrapped with every authorized user's RSA‑OAEP public key. Revoking access deletes their wrapped copy.</p>
+    </div>
+    <div class="hw-item">
+      <h3>Tamper evidence</h3>
+      <p>Blocks are hash-linked to their predecessor, and AES‑GCM authentication rejects any modified ciphertext on decrypt.</p>
+    </div>
+  </div>
+</details>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const USERS = {
+    alice: { name: 'Alice Reyes', color: '#5EEAD4' },
+    bob:   { name: 'Bob Whitfield', color: '#8B7CF6' },
+    carol: { name: 'Carol Ibe', color: '#F5A623' },
+  };
+  let currentUser = 'alice';
+  const keyPairs = {};     // userId -> CryptoKeyPair (RSA-OAEP)
+  const addresses = {};    // userId -> fake wallet address string
+  const files = {};        // fileId -> record
+  const ipfs = {};         // cid -> ArrayBuffer ciphertext
+  let chain = [];          // ledger blocks
+  let fileCounter = 0;
+
+  const $ = sel => document.querySelector(sel);
+  const toastEl = $('#toast');
+  function toast(msg, ms = 2600) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+  }
+
+  function short(hex, n = 8) {
+    if (!hex) return '—';
+    return hex.length > n * 2 ? hex.slice(0, n) + '…' + hex.slice(-n) : hex;
+  }
+
+  async function sha256Hex(buf) {
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function sha256HexFromString(str) {
+    return sha256Hex(new TextEncoder().encode(str));
+  }
+
+  // ---------- ledger ----------
+  async function addBlock(action, data) {
+    const prevHash = chain.length ? chain[chain.length - 1].hash : '0'.repeat(64);
+    const index = chain.length;
+    const timestamp = new Date().toISOString();
+    const payload = JSON.stringify({ index, timestamp, prevHash, action, data });
+    const hash = await sha256HexFromString(payload);
+    chain.push({ index, timestamp, prevHash, action, data, hash });
+    renderChain();
+    renderStats();
+    return chain[chain.length - 1];
+  }
+
+  async function verifyChain() {
+    let valid = true;
+    let badIndex = -1;
+    for (let i = 0; i < chain.length; i++) {
+      const b = chain[i];
+      const expectedPrev = i === 0 ? '0'.repeat(64) : chain[i - 1].hash;
+      const payload = JSON.stringify({ index: b.index, timestamp: b.timestamp, prevHash: expectedPrev, action: b.action, data: b.data });
+      const recomputed = await sha256HexFromString(payload);
+      const linkOk = b.prevHash === expectedPrev;
+      const hashOk = b.hash === recomputed;
+      b._invalid = !(linkOk && hashOk);
+      if (b._invalid && badIndex === -1) badIndex = i;
+      if (b._invalid) valid = false;
+    }
+    return { valid, badIndex };
+  }
+
+  let chainBackup = null;
+  $('#tamperBtn').addEventListener('click', () => {
+    if (chain.length < 2) { toast('Upload at least one file first.'); return; }
+    if (!chainBackup) chainBackup = JSON.parse(JSON.stringify(chain));
+    const target = chain[chain.length - 1];
+    target.data = { ...target.data, fileName: (target.data.fileName || 'file') + ' (secretly edited)' };
+    toast('⚠️ Block #' + target.index + ' data mutated without re-mining. Run "Verify".');
+    $('#restoreBtn').style.display = 'inline-block';
+    renderChain();
+  });
+  $('#restoreBtn').addEventListener('click', () => {
+    if (chainBackup) { chain = JSON.parse(JSON.stringify(chainBackup)); chainBackup = null; }
+    $('#restoreBtn').style.display = 'none';
+    $('#verifyBanner').innerHTML = '';
+    renderChain();
+    renderStats();
+    toast('Chain restored to its verified state.');
+  });
+  $('#verifyBtn').addEventListener('click', async () => {
+    const { valid, badIndex } = await verifyChain();
+    const el = $('#verifyBanner');
+    el.innerHTML = valid
+      ? `<div class="verify-banner ok">✅ Chain verified — ${chain.length} blocks, hash links intact, no tampering detected.</div>`
+      : `<div class="verify-banner bad">⛔ Integrity violation detected at block #${badIndex}. Its stored hash no longer matches its content or predecessor link.</div>`;
+    renderChain();
+    renderStats();
+  });
+
+  function renderChain() {
+    const wrap = $('#chainWrap');
+    wrap.innerHTML = '';
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const b = chain[i];
+      const div = document.createElement('div');
+      div.className = 'block type-' + b.action + (b._invalid ? ' invalid' : '');
+      const desc = describeBlock(b);
+      div.innerHTML = `
+        <div class="node"></div>
+        <div class="card">
+          <div class="block-top">
+            <span class="idx">Block #${b.index}</span>
+            <span class="action-tag tag-${b.action}">${b.action}</span>
+          </div>
+          <div class="block-desc">${desc}</div>
+          <div class="time">${new Date(b.timestamp).toLocaleString()}</div>
+          <div class="block-hashes">
+            <div><b>prev</b> ${short(b.prevHash, 10)}</div>
+            <div><b>hash</b> ${short(b.hash, 10)}</div>
+          </div>
+        </div>`;
+      wrap.appendChild(div);
+    }
+  }
+
+  function describeBlock(b) {
+    const u = id => `<span class="who">${USERS[id] ? USERS[id].name : id}</span>`;
+    switch (b.action) {
+      case 'GENESIS': return 'Chain initialized.';
+      case 'UPLOAD': return `${u(b.data.owner)} uploaded <b>${escapeHtml(b.data.fileName)}</b> (CID ${short(b.data.cid, 6)})`;
+      case 'SHARE': return `${u(b.data.from)} granted access to ${u(b.data.to)} for <b>${escapeHtml(b.data.fileName)}</b>`;
+      case 'REVOKE': return `${u(b.data.from)} revoked ${u(b.data.to)}'s access to <b>${escapeHtml(b.data.fileName)}</b>`;
+      case 'ACCESS': return `${u(b.data.by)} decrypted <b>${escapeHtml(b.data.fileName)}</b> — integrity ${b.data.integrity === 'pass' ? '<span class="ok-line">verified</span>' : '<span class="fail-line">FAILED</span>'}`;
+      default: return JSON.stringify(b.data);
+    }
+  }
+  function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  // ---------- wallets / identity ----------
+  async function initUsers() {
+    for (const id of Object.keys(USERS)) {
+      keyPairs[id] = await crypto.subtle.generateKey(
+        { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+        true, ['wrapKey', 'unwrapKey']
+      );
+      addresses[id] = '0x' + (await sha256HexFromString(id + Math.random())).slice(0, 10);
+    }
+  }
+
+  function renderWalletSwitcher() {
+    const el = $('#walletSwitcher');
+    el.innerHTML = '';
+    Object.entries(USERS).forEach(([id, u]) => {
+      const btn = document.createElement('button');
+      btn.className = 'wallet-btn' + (id === currentUser ? ' active' : '');
+      btn.innerHTML = `<span class="dot" style="background:${u.color}"></span><span><span style="display:block">${u.name.split(' ')[0]}</span><span class="addr">${addresses[id]}</span></span>`;
+      btn.onclick = () => { currentUser = id; renderWalletSwitcher(); renderFiles(); toast(`Switched wallet to ${u.name}`); };
+      el.appendChild(btn);
+    });
+  }
+
+  function renderStats() {
+    const el = $('#statsStrip');
+    const invalid = chain.some(b => b._invalid);
+    el.innerHTML = `
+      <div class="stat"><div class="label">Ledger blocks</div><div class="value">${chain.length}</div></div>
+      <div class="stat"><div class="label">Files in vault</div><div class="value">${Object.keys(files).length}</div></div>
+      <div class="stat"><div class="label">Connected wallets</div><div class="value">${Object.keys(USERS).length}</div></div>
+      <div class="stat"><div class="label">Chain status</div><div class="value"><span class="status-pulse ${invalid ? 'bad' : ''}"></span>${invalid ? 'Tampered' : 'Healthy'}</div></div>
+    `;
+  }
+
+  // ---------- files ----------
+  $('#fileInput').addEventListener('change', async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    e.target.value = '';
+    await uploadFile(f);
+  });
+
+  async function uploadFile(file) {
+    toast('Encrypting and uploading…');
+    const buf = await file.arrayBuffer();
+    const fileHash = await sha256Hex(buf);
+
+    const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, buf);
+    const cid = await sha256Hex(ciphertext);
+    ipfs[cid] = ciphertext;
+
+    const wrappedForOwner = await crypto.subtle.wrapKey('raw', aesKey, keyPairs[currentUser].publicKey, { name: 'RSA-OAEP' });
+
+    const id = 'f' + (++fileCounter);
+    files[id] = {
+      id, name: file.name, size: buf.byteLength, owner: currentUser,
+      cid, iv, fileHash, createdAt: new Date().toISOString(),
+      wrappedKeys: { [currentUser]: wrappedForOwner },
+    };
+
+    await addBlock('UPLOAD', { fileId: id, fileName: file.name, owner: currentUser, cid, fileHash, size: buf.byteLength });
+    renderFiles();
+    toast(`"${file.name}" encrypted & stored. CID ${short(cid, 6)}`);
+  }
+
+  async function shareFile(fileId, targetUser) {
+    const rec = files[fileId];
+    if (rec.owner !== currentUser) return toast('Only the owner can grant access.');
+    if (!targetUser || rec.wrappedKeys[targetUser]) return;
+    const aesKey = await crypto.subtle.unwrapKey(
+      'raw', rec.wrappedKeys[currentUser], keyPairs[currentUser].privateKey,
+      { name: 'RSA-OAEP' }, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']
+    );
+    rec.wrappedKeys[targetUser] = await crypto.subtle.wrapKey('raw', aesKey, keyPairs[targetUser].publicKey, { name: 'RSA-OAEP' });
+    await addBlock('SHARE', { fileId, fileName: rec.name, from: currentUser, to: targetUser });
+    renderFiles();
+    toast(`Access granted to ${USERS[targetUser].name}`);
+  }
+
+  async function revokeFile(fileId, targetUser) {
+    const rec = files[fileId];
+    if (rec.owner !== currentUser) return toast('Only the owner can revoke access.');
+    delete rec.wrappedKeys[targetUser];
+    await addBlock('REVOKE', { fileId, fileName: rec.name, from: currentUser, to: targetUser });
+    renderFiles();
+    toast(`Access revoked for ${USERS[targetUser].name}`);
+  }
+
+  async function decryptFile(fileId) {
+    const rec = files[fileId];
+    const wrapped = rec.wrappedKeys[currentUser];
+    const previewHost = document.getElementById('preview-' + fileId);
+    if (!wrapped) {
+      previewHost.innerHTML = `<div class="fail-line">🚫 Access denied. The blockchain permission record has no key wrapped for your wallet.</div>`;
+      await addBlock('ACCESS', { fileId, fileName: rec.name, by: currentUser, integrity: 'denied' });
+      return;
+    }
+    previewHost.innerHTML = `<div style="color:var(--text-muted)">Unwrapping key & decrypting…</div>`;
+    try {
+      const aesKey = await crypto.subtle.unwrapKey(
+        'raw', wrapped, keyPairs[currentUser].privateKey,
+        { name: 'RSA-OAEP' }, { name: 'AES-GCM' }, false, ['decrypt']
+      );
+      const ciphertext = ipfs[rec.cid];
+      const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: rec.iv }, aesKey, ciphertext);
+      const gotHash = await sha256Hex(plainBuf);
+      const integrityOk = gotHash === rec.fileHash;
+
+      let bodyHtml;
+      try {
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(plainBuf);
+        bodyHtml = `<pre>${escapeHtml(text.slice(0, 4000))}${text.length > 4000 ? '\n…(truncated)' : ''}</pre>`;
+      } catch {
+        const bytes = new Uint8Array(plainBuf).slice(0, 48);
+        const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join(' ');
+        bodyHtml = `<pre>Binary content (${plainBuf.byteLength} bytes). First 48 bytes:\n${hex}</pre>`;
+      }
+
+      previewHost.innerHTML = `
+        <div class="${integrityOk ? 'ok-line' : 'fail-line'}">${integrityOk ? '✅ Decrypted — hash matches original upload.' : '⚠️ Decrypted, but hash MISMATCH — content differs from what was recorded on-chain!'}</div>
+        ${bodyHtml}`;
+
+      await addBlock('ACCESS', { fileId, fileName: rec.name, by: currentUser, integrity: integrityOk ? 'pass' : 'fail' });
+    } catch (err) {
+      previewHost.innerHTML = `<div class="fail-line">❌ Decryption failed — AES‑GCM authentication tag mismatch. Stored ciphertext appears to have been tampered with.</div>`;
+      await addBlock('ACCESS', { fileId, fileName: rec.name, by: currentUser, integrity: 'fail' });
+    }
+  }
+
+  function simulateStorageTamper(fileId) {
+    const rec = files[fileId];
+    const buf = new Uint8Array(ipfs[rec.cid]);
+    if (buf.length === 0) return;
+    buf[0] = buf[0] ^ 0xFF; // flip a byte in the stored ciphertext
+    ipfs[rec.cid] = buf.buffer;
+    toast(`⚠️ Corrupted a byte in the stored ciphertext for "${rec.name}" (simulated storage attack).`);
+  }
+
+  function renderFiles() {
+    const host = $('#fileList');
+    const list = Object.values(files).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    if (!list.length) { host.innerHTML = `<div class="empty">No files yet. Upload one to see it encrypted, hashed and recorded on the ledger.</div>`; return; }
+    host.innerHTML = '';
+    list.forEach(rec => {
+      const isOwner = rec.owner === currentUser;
+      const hasAccess = !!rec.wrappedKeys[currentUser];
+      const pill = isOwner ? '<span class="pill pill-owner">Owner</span>' : hasAccess ? '<span class="pill pill-shared">Shared with you</span>' : '<span class="pill pill-none">No access</span>';
+
+      const sharedBadges = Object.keys(rec.wrappedKeys).filter(u => u !== rec.owner).map(u => `
+        <span class="badge"><span class="dot" style="background:${USERS[u].color}"></span>${USERS[u].name.split(' ')[0]}
+          ${isOwner ? `<button data-revoke="${rec.id}|${u}" title="Revoke">✕</button>` : ''}
+        </span>`).join('');
+
+      const shareOptions = Object.keys(USERS).filter(u => u !== rec.owner && !rec.wrappedKeys[u]);
+      const shareControl = isOwner && shareOptions.length ? `
+        <select class="sel" id="share-sel-${rec.id}">
+          ${shareOptions.map(u => `<option value="${u}">${USERS[u].name}</option>`).join('')}
+        </select>
+        <button class="btn btn-violet btn-sm" data-share="${rec.id}">Grant access</button>` : '';
+
+      const div = document.createElement('div');
+      div.className = 'file-card';
+      div.innerHTML = `
+        <div class="row1">
+          <div>
+            <div class="fname">${escapeHtml(rec.name)}</div>
+            <div class="fmeta">${(rec.size / 1024).toFixed(1)} KB · owner ${USERS[rec.owner].name} · ${new Date(rec.createdAt).toLocaleTimeString()}</div>
+          </div>
+          ${pill}
+        </div>
+        <div class="hashline"><b>CID</b> ${short(rec.cid, 12)}<br><b>hash</b> ${short(rec.fileHash, 12)}</div>
+        <div class="badges">${sharedBadges}</div>
+        <div class="actions">
+          ${shareControl}
+          <button class="btn btn-primary btn-sm" data-decrypt="${rec.id}" ${hasAccess ? '' : 'disabled'}>Decrypt & view</button>
+          ${isOwner ? `<button class="btn btn-danger btn-sm" data-tamper="${rec.id}">Simulate storage attack</button>` : ''}
+        </div>
+        <div class="preview" id="preview-${rec.id}"></div>
+      `;
+      host.appendChild(div);
+    });
+
+    host.querySelectorAll('[data-share]').forEach(btn => btn.onclick = () => {
+      const id = btn.getAttribute('data-share');
+      const sel = document.getElementById('share-sel-' + id);
+      shareFile(id, sel.value);
+    });
+    host.querySelectorAll('[data-revoke]').forEach(btn => btn.onclick = () => {
+      const [id, u] = btn.getAttribute('data-revoke').split('|');
+      revokeFile(id, u);
+    });
+    host.querySelectorAll('[data-decrypt]').forEach(btn => btn.onclick = () => decryptFile(btn.getAttribute('data-decrypt')));
+    host.querySelectorAll('[data-tamper]').forEach(btn => btn.onclick = () => simulateStorageTamper(btn.getAttribute('data-tamper')));
+  }
+
+  // ---------- boot ----------
+  (async function init() {
+    toast('Initializing wallets & generating RSA keypairs…', 4000);
+    await initUsers();
+    renderWalletSwitcher();
+    await addBlock('GENESIS', { msg: 'Chain initialized' });
+    renderFiles();
+    renderStats();
+    toast('Ready. Try uploading a small text file.');
+  })();
+})();
+</script>
+</body>
+</html>
